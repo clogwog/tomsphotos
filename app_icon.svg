@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Camera aperture with letter T">
+  <title>Aperture T</title>
+
+  <path fill="#7EC8E3" stroke="#3AA4C9" stroke-width="0.9" stroke-linejoin="round"
+        d="M 84.785 76.000 L 64.000 88.000 Q 43.762 105.420 12.789 91.229 A 58.000 58.000 0 0 0 61.976 121.965 Q 89.752 102.237 84.785 76.000 Z"/>
+  <path fill="#5EB6D6" stroke="#3AA4C9" stroke-width="0.9" stroke-linejoin="round"
+        d="M 64.000 88.000 L 43.215 76.000 Q 18.010 67.184 14.813 33.265 A 58.000 58.000 0 0 0 12.789 91.229 Q 43.762 105.420 64.000 88.000 Z"/>
+  <path fill="#7EC8E3" stroke="#3AA4C9" stroke-width="0.9" stroke-linejoin="round"
+        d="M 43.215 76.000 L 43.215 52.000 Q 38.248 25.763 66.024 6.035 A 58.000 58.000 0 0 0 14.813 33.265 Q 18.010 67.184 43.215 76.000 Z"/>
+  <path fill="#5EB6D6" stroke="#3AA4C9" stroke-width="0.9" stroke-linejoin="round"
+        d="M 43.215 52.000 L 64.000 40.000 Q 84.238 22.580 115.211 36.771 A 58.000 58.000 0 0 0 66.024 6.035 Q 38.248 25.763 43.215 52.000 Z"/>
+  <path fill="#7EC8E3" stroke="#3AA4C9" stroke-width="0.9" stroke-linejoin="round"
+        d="M 64.000 40.000 L 84.785 52.000 Q 109.990 60.816 113.187 94.735 A 58.000 58.000 0 0 0 115.211 36.771 Q 84.238 22.580 64.000 40.000 Z"/>
+  <path fill="#5EB6D6" stroke="#3AA4C9" stroke-width="0.9" stroke-linejoin="round"
+        d="M 84.785 52.000 L 84.785 76.000 Q 89.752 102.237 61.976 121.965 A 58.000 58.000 0 0 0 113.187 94.735 Q 109.990 60.816 84.785 52.000 Z"/>
+  <circle cx="64" cy="64" r="58" fill="none" stroke="#4DB3D4" stroke-width="3.2"/>
+  <circle cx="64" cy="64" r="61.6" fill="none" stroke="#7EC8E3" stroke-width="1.4"/>
+  <path fill="#4DB3D4" d="M51.2 50.2h25.6v6.2H66.6V78.8h-5.2V56.4H51.2z"/>
+</svg>

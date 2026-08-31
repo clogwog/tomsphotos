@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Test / tooling caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# App runtime data (never commit)
+*.db
+*.db-wal
+*.db-shm
+app.lock
+settings.json
+
+# Local planning notes (may contain personal library details)
+PLAN.md
+
+# macOS
+.DS_Store

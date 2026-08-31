@@ -1,0 +1,5 @@
+PySide6>=6.5
+Pillow>=10.0
+pillow-avif-plugin>=1.4
+ffmpeg  # system binary for video frame extraction (macOS: brew install ffmpeg)
+exiftool  # system binary for metadata-only rotation (macOS: brew install exiftool)
