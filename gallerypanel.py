@@ -223,6 +223,9 @@ class JustifiedGalleryView(QAbstractScrollArea):
 
     def set_toolbar_visible(self, visible):
         self._toolbar.setVisible(visible)
+        # Fold the reserved toolbar strip away/in when toggling so the
+        # detail view (overlay over the viewport) spans the full height.
+        self.setViewportMargins(0, TOOLBAR_HEIGHT if visible else 0, 0, 0)
 
     def _confirm_exit(self):
         answer = QMessageBox.question(
