@@ -139,7 +139,7 @@ class FullView(QWidget):
         self._index = -1
         self.mode = "thumbnail"
         self._toolbar = QWidget(self)
-        self._toolbar.setStyleSheet("background:rgba(18,18,18,235); border-top:1px solid #333;")
+        self._toolbar.setStyleSheet("background:rgba(18,18,18,235); border-bottom:1px solid #333;")
         toolbar_layout = QHBoxLayout(self._toolbar)
         toolbar_layout.setContentsMargins(16, 6, 16, 6)
         toolbar_layout.setSpacing(8)
@@ -244,8 +244,8 @@ class FullView(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         toolbar_height = 52
-        self._toolbar.setGeometry(0, self.height() - toolbar_height, self.width(), toolbar_height)
-        self._stack.setGeometry(0, 0, self.width(), max(0, self.height() - toolbar_height))
+        self._toolbar.setGeometry(0, 0, self.width(), toolbar_height)
+        self._stack.setGeometry(0, toolbar_height, self.width(), max(0, self.height() - toolbar_height))
         self._place_controls()
         if self._photo_pixmap:
             self._photo_label.setPixmap(
