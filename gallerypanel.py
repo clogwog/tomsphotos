@@ -167,22 +167,26 @@ class JustifiedGalleryView(QAbstractScrollArea):
         self.tb_rotate_ccw.setToolTip("Rotate counter-clockwise 90°")
         self.tb_rotate_cw = QPushButton("↻")
         self.tb_rotate_cw.setToolTip("Rotate clockwise 90°")
+        self.tb_exit = QPushButton("×")
+        self.tb_exit.setToolTip("Quit")
 
         style = (
             "QPushButton { color:#fff; background:transparent; border:none; font-size:20px; }"
             "QPushButton:hover { background:#333; border-radius:19px; }"
         )
         for button in (self.tb_refresh, self.tb_open, self.tb_copy,
-                       self.tb_rotate_ccw, self.tb_rotate_cw):
+                       self.tb_rotate_ccw, self.tb_rotate_cw, self.tb_exit):
             button.setFixedSize(38, 38)
             button.setCursor(Qt.PointingHandCursor)
             button.setStyleSheet(style)
+        self.tb_exit.setStyleSheet(self.tb_exit.styleSheet().replace("font-size:20px", "font-size:26px"))
 
         self.tb_refresh.clicked.connect(self.refresh_requested.emit)
         self.tb_open.clicked.connect(self._open_selected_folder)
         self.tb_copy.clicked.connect(self._copy_selected)
         self.tb_rotate_ccw.clicked.connect(lambda: self._rotate_selected(False))
         self.tb_rotate_cw.clicked.connect(lambda: self._rotate_selected(True))
+        self.tb_exit.clicked.connect(self._confirm_exit)
 
         lay.addWidget(self.tb_refresh)
         lay.addWidget(self.tb_open)
@@ -190,6 +194,7 @@ class JustifiedGalleryView(QAbstractScrollArea):
         lay.addStretch(1)
         lay.addWidget(self.tb_rotate_ccw)
         lay.addWidget(self.tb_rotate_cw)
+        lay.addWidget(self.tb_exit)
 
     def _rotate_selected(self, clockwise):
         if self._selected_path:
@@ -215,6 +220,17 @@ class JustifiedGalleryView(QAbstractScrollArea):
             from thumbgen import get_image_dimensions
             if path and os.path.exists(path):
                 QGuiApplication.clipboard().setText(path)
+
+    def _confirm_exit(self):
+        answer = QMessageBox.question(
+            self,
+            "Quit",
+            "Quit tomsphotos?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if answer == QMessageBox.Yes:
+            QGuiApplication.quit()
 
     # ------------------------------------------------------------------
     # Public API
