@@ -7,13 +7,14 @@ fills them in (debounced reflow).
 
 import bisect
 import os
+import subprocess
 import time
 
 from send2trash import send2trash
 
 from PySide6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, QRect, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QPainter, QPen, QPixmap, QPixmapCache
-from PySide6.QtWidgets import QAbstractScrollArea, QFrame, QMessageBox
+from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPen, QPixmap, QPixmapCache
+from PySide6.QtWidgets import QAbstractScrollArea, QFrame, QHBoxLayout, QMessageBox, QPushButton, QStyle, QWidget
 
 from config import (
     GAP,
@@ -27,6 +28,7 @@ from config import (
 
 PLACEHOLDER_COLOR = QColor("#1a1a1a")
 DEFAULT_RATIO = 1.0
+TOOLBAR_HEIGHT = 52
 
 
 def hit_test_position(positions, y_starts, x, y):
@@ -100,6 +102,7 @@ class JustifiedGalleryView(QAbstractScrollArea):
     video_clicked = Signal(str)
     item_deleted = Signal(str)
     rotate_requested = Signal(str, bool)  # path, clockwise
+    refresh_requested = Signal()
 
     def __init__(self, thumb_manager, parent=None):
         super().__init__(parent)
@@ -134,15 +137,84 @@ class JustifiedGalleryView(QAbstractScrollArea):
         self._scroll_anim.setDuration(110)
         self._scroll_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
+        self._build_toolbar()
+
         self.manager.thumbnail_ready.connect(self._on_thumb_ready)
         self.manager.dims_ready.connect(self._on_dims_ready)
 
-        self.setViewportMargins(0, 0, 0, 0)
+        self.setViewportMargins(0, TOOLBAR_HEIGHT, 0, 0)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setFocusPolicy(Qt.StrongFocus)
         self.setMouseTracking(True)
         self.viewport().setAttribute(Qt.WA_OpaquePaintEvent, True)
+
+    def _build_toolbar(self):
+        self._toolbar = QWidget(self)
+        self._toolbar.setStyleSheet("background:rgba(18,18,18,235); border-bottom:1px solid #333;")
+        lay = QHBoxLayout(self._toolbar)
+        lay.setContentsMargins(16, 6, 16, 6)
+        lay.setSpacing(8)
+
+        self.tb_refresh = QPushButton("⟳")
+        self.tb_refresh.setToolTip("Reload thumbnails")
+        self.tb_open = QPushButton()
+        self.tb_open.setIcon(self.style().standardIcon(QStyle.SP_DirOpenIcon))
+        self.tb_open.setToolTip("Open containing folder")
+        self.tb_copy = QPushButton("⧉")
+        self.tb_copy.setToolTip("Copy image to clipboard")
+        self.tb_rotate_ccw = QPushButton("↺")
+        self.tb_rotate_ccw.setToolTip("Rotate counter-clockwise 90°")
+        self.tb_rotate_cw = QPushButton("↻")
+        self.tb_rotate_cw.setToolTip("Rotate clockwise 90°")
+
+        style = (
+            "QPushButton { color:#fff; background:transparent; border:none; font-size:20px; }"
+            "QPushButton:hover { background:#333; border-radius:19px; }"
+        )
+        for button in (self.tb_refresh, self.tb_open, self.tb_copy,
+                       self.tb_rotate_ccw, self.tb_rotate_cw):
+            button.setFixedSize(38, 38)
+            button.setCursor(Qt.PointingHandCursor)
+            button.setStyleSheet(style)
+
+        self.tb_refresh.clicked.connect(self.refresh_requested.emit)
+        self.tb_open.clicked.connect(self._open_selected_folder)
+        self.tb_copy.clicked.connect(self._copy_selected)
+        self.tb_rotate_ccw.clicked.connect(lambda: self._rotate_selected(False))
+        self.tb_rotate_cw.clicked.connect(lambda: self._rotate_selected(True))
+
+        lay.addWidget(self.tb_refresh)
+        lay.addWidget(self.tb_open)
+        lay.addWidget(self.tb_copy)
+        lay.addStretch(1)
+        lay.addWidget(self.tb_rotate_ccw)
+        lay.addWidget(self.tb_rotate_cw)
+
+    def _rotate_selected(self, clockwise):
+        if self._selected_path:
+            self.rotate_requested.emit(self._selected_path, clockwise)
+
+    def _open_selected_folder(self):
+        path = self._selected_path
+        if not path or not os.path.exists(path):
+            return
+        try:
+            subprocess.Popen(["open", "-R", path])
+        except OSError:
+            pass
+
+    def _copy_selected(self):
+        path = self._selected_path
+        if not path:
+            return
+        pm = QPixmapCache.find(path)
+        if pm is not None and not pm.isNull():
+            QGuiApplication.clipboard().setPixmap(pm)
+        else:
+            from thumbgen import get_image_dimensions
+            if path and os.path.exists(path):
+                QGuiApplication.clipboard().setText(path)
 
     # ------------------------------------------------------------------
     # Public API
@@ -418,6 +490,8 @@ class JustifiedGalleryView(QAbstractScrollArea):
     # ------------------------------------------------------------------
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        self._toolbar.setGeometry(0, 0, self.width(), TOOLBAR_HEIGHT)
+        self._toolbar.raise_()
         self._reflow()
         self._request_visible_thumbs()
         self.viewport().update()

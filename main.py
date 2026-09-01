@@ -93,6 +93,7 @@ class MainWindow(QMainWindow):
         self.fullview.delete_requested.connect(self._delete_from_detail)
         self.fullview.rotate_requested.connect(self._rotate_from_detail)
         self.gallery.rotate_requested.connect(self._rotate_from_detail)
+        self.gallery.refresh_requested.connect(self._reload_current_directory)
         self.thumb_manager.progress.connect(self._on_thumb_progress)
         self.thumb_manager.all_done.connect(self.status.hide_thumb_progress)
 
@@ -148,6 +149,7 @@ class MainWindow(QMainWindow):
         self.mode = MODE_THUMBNAIL
         if not os.path.isdir(path):
             return
+        self._current_dir = path
         self.fullview.close_view()
         self.status.set_info(path.replace(config.SOURCE_ROOT, "…", 1))
         files = walk_media_files(path)
@@ -155,6 +157,16 @@ class MainWindow(QMainWindow):
         meta = {f[0]: (f[2], f[1]) for f in files}  # path -> (mtime, size)
         self.gallery.set_items_with_meta(paths, meta)
         self.fullview.set_items(paths)
+        self.gallery.setFocus()
+
+    def _reload_current_directory(self):
+        if not getattr(self, "_current_dir", None):
+            return
+        QPixmapCache.clear()
+        selected = self.gallery._selected_path
+        self.load_directory(self._current_dir)
+        if selected:
+            self.gallery.select_path(selected)
         self.gallery.setFocus()
 
     def _on_thumb_progress(self, done, total):
