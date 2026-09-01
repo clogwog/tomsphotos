@@ -139,10 +139,12 @@ class MainWindow(QMainWindow):
 
     def _show_photo_detail(self, path):
         self.mode = MODE_DETAIL
+        self.gallery.set_toolbar_visible(False)
         self.fullview.show_photo(path)
 
     def _show_video_detail(self, path):
         self.mode = MODE_DETAIL
+        self.gallery.set_toolbar_visible(False)
         self.fullview.show_video(path)
 
     def load_directory(self, path):
@@ -150,6 +152,7 @@ class MainWindow(QMainWindow):
         if not os.path.isdir(path):
             return
         self._current_dir = path
+        self.gallery.set_toolbar_visible(True)
         self.fullview.close_view()
         self.status.set_info(path.replace(config.SOURCE_ROOT, "…", 1))
         files = walk_media_files(path)
@@ -178,6 +181,7 @@ class MainWindow(QMainWindow):
     def _delete_from_detail(self, path, confirm):
         if self.gallery.delete_path(path, confirm):
             self.mode = MODE_THUMBNAIL
+            self.gallery.set_toolbar_visible(True)
             self.fullview.close_view()
             self.gallery.setFocus()
             self.gallery.viewport().update()
@@ -195,6 +199,7 @@ class MainWindow(QMainWindow):
 
     def _on_fullview_closed(self, path):
         self.mode = MODE_THUMBNAIL
+        self.gallery.set_toolbar_visible(True)
         if path:
             self.gallery.select_path(path)
         self.gallery.setFocus()

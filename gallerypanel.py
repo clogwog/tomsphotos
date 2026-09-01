@@ -221,6 +221,9 @@ class JustifiedGalleryView(QAbstractScrollArea):
             if path and os.path.exists(path):
                 QGuiApplication.clipboard().setText(path)
 
+    def set_toolbar_visible(self, visible):
+        self._toolbar.setVisible(visible)
+
     def _confirm_exit(self):
         answer = QMessageBox.question(
             self,
