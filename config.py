@@ -98,4 +98,9 @@ QSS = """
   QSlider::sub-page:horizontal { background: #4a9eff; }
   QToolButton { background: transparent; color: #fff; border: none; font-size: 16px; }
   QToolButton:hover { background: rgba(255,255,255,0.15); border-radius: 4px; }
+  QMessageBox { background: #1c1c1e; }
+  QMessageBox QLabel { background: transparent; color: #e0e0e0; font-size: 13px; }
+  QMessageBox QPushButton { background: #2c2c2e; color: #e0e0e0; border: 1px solid #444; border-radius: 6px; padding: 6px 18px; font-size: 13px; }
+  QMessageBox QPushButton:hover { background: #3a3a3c; }
+  QMessageBox QPushButton:pressed { background: #48484a; }
 """

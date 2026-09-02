@@ -5,8 +5,8 @@ import datetime
 import os
 import subprocess
 
-from PySide6.QtCore import QEvent, QTimer, QUrl, Qt, Signal
-from PySide6.QtGui import QGuiApplication, QPixmap
+from PySide6.QtCore import QEvent, QPoint, QRect, QTimer, QUrl, Qt, Signal
+from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import (
@@ -124,6 +124,122 @@ class _ControlBar(QWidget):
             self.player.pause()
 
 
+class _ZoomablePhoto(QWidget):
+    """Displays a pixmap with zoom + two-finger pan. Emits zoom_changed."""
+
+    zoom_changed = Signal(float)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._pixmap = None
+        self._zoom = 1.0
+        self._offset = QPoint(0, 0)
+        self._last_pan_point = None
+        self._drag_active = False
+        self.setMouseTracking(True)
+        self.setFocusPolicy(Qt.StrongFocus)
+
+    def set_pixmap(self, pixmap):
+        self._pixmap = pixmap
+        self._zoom = 1.0
+        self._offset = QPoint(0, 0)
+        self.update()
+
+    def zoom(self):
+        return self._zoom
+
+    def set_zoom(self, factor):
+        self._zoom = max(1.0, min(8.0, factor))
+        self._clamp_offset()
+        self.update()
+        self.zoom_changed.emit(self._zoom)
+
+    def zoom_by(self, delta):
+        self.set_zoom(self._zoom * delta)
+
+    def _fit_rect(self):
+        if not self._pixmap or self._pixmap.isNull():
+            return QRect(0, 0, 0, 0)
+        pw, ph = self._pixmap.width(), self._pixmap.height()
+        if pw <= 0 or ph <= 0:
+            return QRect(0, 0, 0, 0)
+        scale = min(self.width() / pw, self.height() / ph)
+        dw, dh = int(pw * scale), int(ph * scale)
+        return QRect((self.width() - dw) // 2, (self.height() - dh) // 2, dw, dh)
+
+    def _content_rect(self):
+        r = self._fit_rect()
+        if self._zoom <= 1.0:
+            return r
+        w = int(r.width() * self._zoom)
+        h = int(r.height() * self._zoom)
+        x = (self.width() - w) // 2 + self._offset.x()
+        y = (self.height() - h) // 2 + self._offset.y()
+        return QRect(x, y, w, h)
+
+    def _clamp_offset(self):
+        r = self._content_rect()
+        # clamp so the image never leaves the viewport entirely
+        max_x = max(0, (r.width() - self.width()) // 2)
+        max_y = max(0, (r.height() - self.height()) // 2)
+        self._offset.setX(max(-max_x, min(max_x, self._offset.x())))
+        self._offset.setY(max(-max_y, min(max_y, self._offset.y())))
+
+    def _apply_pan(self, screen_delta):
+        if self._zoom <= 1.0:
+            return
+        self._offset += screen_delta
+        self._clamp_offset()
+        self.update()
+
+    def paintEvent(self, event):
+        if not self._pixmap or self._pixmap.isNull():
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform, True)
+        painter.drawPixmap(self._content_rect(), self._pixmap, self._pixmap.rect())
+        painter.end()
+
+    def wheelEvent(self, event):
+        # Trackpad pinch on macOS arrives as a native gesture, but two-finger
+        # scroll while zoomed is delivered via wheel; support both.
+        if event.modifiers() & Qt.ControlModifier:
+            delta = 1.0 + event.angleDelta().y() / 1200.0
+            self.zoom_by(delta)
+            event.accept()
+            return
+        if self._zoom > 1.0:
+            self._apply_pan(QPoint(event.pixelDelta().x(), event.pixelDelta().y()))
+            event.accept()
+            return
+        super().wheelEvent(event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton and self._zoom > 1.0:
+            self._drag_active = True
+            self._last_pan_point = event.position().toPoint()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._drag_active and self._last_pan_point is not None:
+            delta = event.position().toPoint() - self._last_pan_point
+            self._last_pan_point = event.position().toPoint()
+            self._apply_pan(delta)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton and self._drag_active:
+            self._drag_active = False
+            self._last_pan_point = None
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+
 class FullView(QWidget):
     closed = Signal(str)
     delete_requested = Signal(str, bool)
@@ -206,8 +322,7 @@ class FullView(QWidget):
         self._toolbar.hide()
 
         # Photo mode
-        self._photo_label = QLabel()
-        self._photo_label.setAlignment(Qt.AlignCenter)
+        self._photo_label = _ZoomablePhoto()
         self._photo_label.setStyleSheet("background:#000;")
         self._photo_label.installEventFilter(self)
         self._stack.installEventFilter(self)
@@ -241,6 +356,11 @@ class FullView(QWidget):
         self._is_video = False
         self._photo_pixmap = None
         self._full_blob = None
+        self._zoom = 1.0
+        self._pan = QPoint(0, 0)
+        self._pan_start = None
+        self._drag_origin = None
+        self.installEventFilter(self)
 
     def set_items(self, paths):
         self._items = list(paths)
@@ -252,11 +372,7 @@ class FullView(QWidget):
         self._stack.setGeometry(0, toolbar_height, self.width(), max(0, self.height() - toolbar_height))
         self._place_controls()
         if self._photo_pixmap:
-            self._photo_label.setPixmap(
-                self._photo_pixmap.scaled(
-                    self._stack.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
-                )
-            )
+            self._photo_label.set_pixmap(self._photo_pixmap)
 
     def _place_controls(self):
         w = self.width()
@@ -421,7 +537,7 @@ class FullView(QWidget):
 
     # ------------------------------------------------------------------
     def _load_photo(self, path):
-        self._photo_label.clear()
+        self._photo_label.set_pixmap(QPixmap())
         self._photo_pixmap = None
         st = None
         try:
@@ -446,14 +562,19 @@ class FullView(QWidget):
                     if hasattr(self, "parent_store"):
                         self.parent_store.store_full(path, st.st_mtime, st.st_size, blob, w, h)
         if self._photo_pixmap:
-            self._photo_label.setPixmap(
-                self._photo_pixmap.scaled(
-                    self._stack.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
-                )
-            )
+            self._photo_label.set_pixmap(self._photo_pixmap)
 
     def eventFilter(self, watched, event):
+        if event.type() == QEvent.NativeGesture:
+            if event.gestureType() == Qt.ZoomNativeGesture:
+                if self.mode == "detail" and not self._is_video:
+                    self._photo_label.zoom_by(event.value())
+                    return True
         if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
+            # Clicking the photo exits detail mode, unless we're zoomed in
+            # (then the click starts a drag instead).
+            if watched is self._photo_label and self._photo_label.zoom() > 1.0:
+                return False
             self._exit_detail()
             return True
         if event.type() == QEvent.KeyPress:
