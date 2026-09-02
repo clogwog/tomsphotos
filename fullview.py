@@ -567,8 +567,10 @@ class FullView(QWidget):
     def eventFilter(self, watched, event):
         if event.type() == QEvent.NativeGesture:
             if event.gestureType() == Qt.ZoomNativeGesture:
+                # value is an incremental factor (usually << 1): the correct
+                # transform is scale *= (1 + value), NOT scale *= value.
                 if self.mode == "detail" and not self._is_video:
-                    self._photo_label.zoom_by(event.value())
+                    self._photo_label.zoom_by(1.0 + event.value())
                     return True
         if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
             # Clicking the photo exits detail mode, unless we're zoomed in
@@ -589,6 +591,14 @@ class FullView(QWidget):
                 return True
             if event.text() == "]":
                 self._rotate_current(True)
+                return True
+            if event.key() in (Qt.Key_Plus, Qt.Key_Equal, Qt.Key_ZoomIn) or event.text() == "+":
+                if not self._is_video:
+                    self._photo_label.zoom_by(1.25)
+                return True
+            if event.key() in (Qt.Key_Minus, Qt.Key_ZoomOut) or event.text() == "-":
+                if not self._is_video:
+                    self._photo_label.zoom_by(1 / 1.25)
                 return True
             if event.key() == Qt.Key_Left:
                 self._show_previous()
@@ -615,6 +625,12 @@ class FullView(QWidget):
             self._rotate_current(False)
         elif event.text() == "]":
             self._rotate_current(True)
+        elif event.key() in (Qt.Key_Plus, Qt.Key_Equal, Qt.Key_ZoomIn) or event.text() == "+":
+            if not self._is_video:
+                self._photo_label.zoom_by(1.25)
+        elif event.key() in (Qt.Key_Minus, Qt.Key_ZoomOut) or event.text() == "-":
+            if not self._is_video:
+                self._photo_label.zoom_by(1 / 1.25)
         elif event.key() == Qt.Key_Left:
             self._show_previous()
         elif event.key() == Qt.Key_Right:

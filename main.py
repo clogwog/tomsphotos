@@ -98,9 +98,8 @@ class MainWindow(QMainWindow):
         self.thumb_manager.all_done.connect(self.status.hide_thumb_progress)
 
     def _start_background_scan(self):
-        # Always run: the scan is incremental (rescans dirs whose mtime
-        # changed since last scan), so re-scans pick up new/changed folders
-        # and keep tree counts current across app restarts.
+        # Show what's already indexed immediately (stale counts ok), then
+        # re-scan incrementally in the background so the tree catches up.
         self.tree.model.fetchMore(QModelIndex())
         self.tree.expandToDepth(0)
         self.status.show_scan("Scanning directories…")
