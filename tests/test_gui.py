@@ -216,7 +216,7 @@ def test_fullview_navigation_toolbar(qapp, manager, media_tree):
     fv.resize(800, 600)
     fv.show_photo(paths[1])
     qapp.processEvents()
-    assert fv._title_label.text() == os.path.basename(paths[1])
+    assert fv._title_label.text() == paths[1]
     assert fv._previous_button.isVisible()
     assert fv._next_button.isVisible()
     assert fv._exit_button.isVisible()
@@ -224,7 +224,7 @@ def test_fullview_navigation_toolbar(qapp, manager, media_tree):
     assert fv._date_label.alignment() == Qt.AlignCenter
     fv._show_next()
     qapp.processEvents()
-    assert fv._title_label.text() == os.path.basename(paths[2])
+    assert fv._title_label.text() == paths[2]
     assert fv._next_button.isVisible()
     fv._show_at(len(paths) - 1)
     qapp.processEvents()

@@ -182,13 +182,17 @@ class FullView(QWidget):
         self._date_label = QLabel()
         self._date_label.setAlignment(Qt.AlignCenter)
         self._date_label.setStyleSheet("color:#999; font-size:12px;")
+        self._meta_label = QLabel()
+        self._meta_label.setAlignment(Qt.AlignCenter)
+        self._meta_label.setStyleSheet("color:#999; font-size:12px;")
         metadata = QWidget()
-        metadata.setFixedWidth(420)
+        metadata.setFixedWidth(560)
         metadata_layout = QVBoxLayout(metadata)
         metadata_layout.setContentsMargins(0, 0, 0, 0)
         metadata_layout.setSpacing(0)
         metadata_layout.addWidget(self._title_label)
         metadata_layout.addWidget(self._date_label)
+        metadata_layout.addWidget(self._meta_label)
         toolbar_layout.addWidget(self._exit_button)
         toolbar_layout.addWidget(self._open_folder_button)
         toolbar_layout.addWidget(self._copy_button)
@@ -262,13 +266,46 @@ class FullView(QWidget):
 
     def _update_toolbar(self, path):
         self._index = self._items.index(path) if path in self._items else -1
-        self._title_label.setText(os.path.basename(path))
+        self._title_label.setText(path)
         self._date_label.setText(self._date_for(path))
+        self._meta_label.setText(self._meta_for(path))
         self._previous_button.setVisible(self._index > 0)
         self._next_button.setVisible(0 <= self._index < len(self._items) - 1)
         self._copy_button.setVisible(not self._is_video)
         self._toolbar.show()
         self._toolbar.raise_()
+
+    @staticmethod
+    def _human_size(num_bytes):
+        size = float(max(0, num_bytes))
+        for unit in ("B", "KB", "MB", "GB", "TB"):
+            if size < 1024 or unit == "TB":
+                return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+            size /= 1024
+
+    def _meta_for(self, path):
+        parts = []
+        dims = None
+        if self._is_video:
+            try:
+                from thumbgen import get_video_dimensions
+                dims = get_video_dimensions(path)
+            except Exception:
+                dims = None
+        else:
+            try:
+                from thumbgen import get_image_dimensions
+                dims = get_image_dimensions(path)
+            except Exception:
+                dims = None
+        if dims:
+            parts.append(f"{dims[0]} × {dims[1]}")
+        try:
+            size = os.path.getsize(path)
+            parts.append(self._human_size(size))
+        except OSError:
+            pass
+        return "  •  ".join(parts)
 
     def _date_for(self, path):
         try:
