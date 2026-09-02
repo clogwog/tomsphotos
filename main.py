@@ -98,12 +98,9 @@ class MainWindow(QMainWindow):
         self.thumb_manager.all_done.connect(self.status.hide_thumb_progress)
 
     def _start_background_scan(self):
-        if self.index_db.is_scanned(config.SOURCE_ROOT):
-            self.tree.model.refresh_root()
-            self.tree.model.fetchMore(QModelIndex())
-            return
-        # Not scanned yet: show the real filesystem structure immediately;
-        # the background scan fills in the media counts.
+        # Always run: the scan is incremental (rescans dirs whose mtime
+        # changed since last scan), so re-scans pick up new/changed folders
+        # and keep tree counts current across app restarts.
         self.tree.model.fetchMore(QModelIndex())
         self.tree.expandToDepth(0)
         self.status.show_scan("Scanning directories…")
@@ -171,6 +168,8 @@ class MainWindow(QMainWindow):
         if selected:
             self.gallery.select_path(selected)
         self.gallery.setFocus()
+        # Re-scan the tree so directory counts refresh too.
+        self._start_background_scan()
 
     def _on_thumb_progress(self, done, total):
         self.status.show_thumb_progress(done, total)
