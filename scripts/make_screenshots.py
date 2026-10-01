@@ -418,7 +418,7 @@ def main():
         win.tree.setCurrentIndex(idx)
         win.tree.scrollTo(idx)
     pump(app, lambda: False, timeout=0.8)
-    grab(win, "gallery.png")
+    grab(win, "gallery-grid.png")
 
     # 1b) Two photos marked as deleted (red cross)
     photos = [p for p in win.gallery._items if p.lower().endswith(".jpg")]
@@ -428,7 +428,7 @@ def main():
         win.gallery.delete_path(path, confirm=False)
     win.gallery.setFocus()
     pump(app, lambda: False, timeout=0.6)
-    grab(win, "deleted.png")
+    grab(win, "deleted-grid.png")
 
     # 2) Detail view
     win._show_photo_detail(photos[2])
@@ -436,7 +436,7 @@ def main():
     win.fullview._title_label.setText("Pictures/" + os.path.relpath(photos[2], samples))
     win.fullview._date_label.setText(win.fullview._date_for(photos[2]))
     pump(app, lambda: False, timeout=0.8)
-    grab(win, "detail.png")
+    grab(win, "photo-detail.png")
     win.fullview.close_view()
     pump(app, lambda: False, timeout=0.3)
 
@@ -454,7 +454,7 @@ def main():
     dlg.show()
     pump(app, lambda: dlg.thumb_label.pixmap() is not None and not dlg.thumb_label.pixmap().isNull(), timeout=20)
     pump(app, lambda: False, timeout=0.6)
-    grab(dlg, "google-photos.png")
+    grab(dlg, "google-photos-sync.png")
     dlg.close()
 
     win.close()
