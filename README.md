@@ -12,22 +12,21 @@ and the grid only renders what's on screen.
 
 Justified gallery with the directory tree on the left:
 
-![Justified gallery](docs/screenshots/gallery-grid.png)
+![Justified gallery](docs/screenshots/gallery-grid-v2.png)
 
 Photos marked for deletion (red cross, moved to the macOS Trash):
 
-![Deleted photos](docs/screenshots/deleted-grid.png)
+![Deleted photos](docs/screenshots/deleted-grid-v2.png)
 
 Full-size detail view (path, date, resolution and size in the toolbar):
 
-![Detail view](docs/screenshots/photo-detail.png)
+![Detail view](docs/screenshots/photo-detail-v2.png)
 
 Google Photos sync dialog:
 
-![Google Photos sync](docs/screenshots/google-photos-sync.png)
+![Google Photos sync](docs/screenshots/google-photos-sync-v2.png)
 
-_The photos shown in these screenshots are synthetic images generated for
-illustration purposes — no real photos are used. Regenerate them with
+_Sample photos live in `scripts/sample_photos/`. Regenerate the screenshots with
 `python scripts/make_screenshots.py` (headless)._
 
 ## Features
