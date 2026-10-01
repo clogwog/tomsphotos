@@ -505,6 +505,10 @@ class FullView(QWidget):
         if path in self._items:
             self._show_at(self._items.index(path))
 
+    def mark_deleted(self, path):
+        """Record a file as deleted so navigation skips it."""
+        self._deleted.add(path)
+
     def show_video(self, path):
         self.mode = "detail"
         self._current_path = path

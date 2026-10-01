@@ -382,7 +382,7 @@ class JustifiedGalleryView(QAbstractScrollArea):
 
     def _draw_deleted_placeholder(self, painter, rect):
         painter.fillRect(rect, QColor("#000000"))
-        painter.setPen(QPen(QColor("#78c8ff"), 5, Qt.SolidLine, Qt.RoundCap))
+        painter.setPen(QPen(QColor("#ff453a"), 5, Qt.SolidLine, Qt.RoundCap))
         inset = max(8, min(rect.width(), rect.height()) // 8)
         painter.drawLine(rect.left() + inset, rect.top() + inset, rect.right() - inset, rect.bottom() - inset)
         painter.drawLine(rect.right() - inset, rect.top() + inset, rect.left() + inset, rect.bottom() - inset)
