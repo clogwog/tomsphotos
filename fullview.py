@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QStyle,
 )
 
+from clipboard_util import image_for_clipboard
 from config import THUMB_SIZE_FULL, VIDEO_EXTENSIONS
 from thumbgen import generate_image_thumbnail
 
@@ -354,6 +355,7 @@ class FullView(QWidget):
 
         self._current_path = None
         self._is_video = False
+        self._deleted = set()
         self._photo_pixmap = None
         self._full_blob = None
         self._zoom = 1.0
@@ -364,6 +366,7 @@ class FullView(QWidget):
 
     def set_items(self, paths):
         self._items = list(paths)
+        self._deleted.clear()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -460,17 +463,24 @@ class FullView(QWidget):
                 QGuiApplication.clipboard().setText(self._current_path)
             return
         if self._photo_pixmap is not None and not self._photo_pixmap.isNull():
-            QGuiApplication.clipboard().setPixmap(self._photo_pixmap)
+            img = image_for_clipboard(self._photo_pixmap)
+            QGuiApplication.clipboard().setImage(img)
 
     def _rotate_current(self, clockwise):
         if self.mode == "detail" and self._current_path:
             self.rotate_requested.emit(self._current_path, clockwise)
 
     def _show_previous(self):
-        self._show_at(self._index - 1)
+        index = self._index - 1
+        while 0 <= index < len(self._items) and self._items[index] in self._deleted:
+            index -= 1
+        self._show_at(index)
 
     def _show_next(self):
-        self._show_at(self._index + 1)
+        index = self._index + 1
+        while 0 <= index < len(self._items) and self._items[index] in self._deleted:
+            index += 1
+        self._show_at(index)
 
     # ------------------------------------------------------------------
     # Public API
@@ -489,6 +499,11 @@ class FullView(QWidget):
         self.show()
         self.raise_()
         self.setFocus()
+
+    def show_path(self, path):
+        """Show a specific item from the current list (photo or video)."""
+        if path in self._items:
+            self._show_at(self._items.index(path))
 
     def show_video(self, path):
         self.mode = "detail"

@@ -11,6 +11,7 @@ import config
 from fullview import FullView
 from gallerypanel import JustifiedGalleryView
 from config import MODE_DETAIL, MODE_THUMBNAIL
+from gpdialog import GPhotosSetupDialog, GoogleSyncDialog
 from scanner import IndexDB, ScannerThread, walk_media_files
 from statusbar import StatusBar
 from thumbgen import ThumbnailManager
@@ -39,6 +40,7 @@ class MainWindow(QMainWindow):
         self.resize(1440, 900)
         self.setStyleSheet(config.QSS)
         self.mode = MODE_THUMBNAIL
+        self._gp_dialog = None
 
         self.index_db = IndexDB()
         self.thumb_store = ThumbStore()
@@ -58,6 +60,10 @@ class MainWindow(QMainWindow):
         self._set_dir_action.setShortcut(QKeySequence("Ctrl+O"))
         self._set_dir_action.triggered.connect(self._choose_source_root)
         file_menu.addAction(self._set_dir_action)
+        file_menu.addSeparator()
+        self._gp_setup_action = QAction("Google Photos Setup…", self)
+        self._gp_setup_action.triggered.connect(self._show_gphotos_setup)
+        file_menu.addAction(self._gp_setup_action)
         file_menu.addSeparator()
         quit_action = QAction("Quit", self)
         quit_action.setShortcut(QKeySequence.Quit)
@@ -89,6 +95,7 @@ class MainWindow(QMainWindow):
         self.gallery.photo_clicked.connect(self._show_photo_detail)
         self.gallery.video_clicked.connect(self._show_video_detail)
         self.gallery.item_deleted.connect(self._on_item_deleted)
+        self.gallery.gphotos_requested.connect(self._open_gphotos_sync)
         self.fullview.closed.connect(self._on_fullview_closed)
         self.fullview.delete_requested.connect(self._delete_from_detail)
         self.fullview.rotate_requested.connect(self._rotate_from_detail)
@@ -96,6 +103,30 @@ class MainWindow(QMainWindow):
         self.gallery.refresh_requested.connect(self._reload_current_directory)
         self.thumb_manager.progress.connect(self._on_thumb_progress)
         self.thumb_manager.all_done.connect(self.status.hide_thumb_progress)
+
+    def _show_gphotos_setup(self):
+        dialog = GPhotosSetupDialog(self)
+        if dialog.exec():
+            self.status.set_info("Google Photos credentials saved")
+            if self._gp_dialog is not None:
+                self._gp_dialog.start_sync()
+        return dialog.result() == 1
+
+    def _open_gphotos_sync(self):
+        if not config.GP_CLIENT_ID or not config.GP_CLIENT_SECRET:
+            if not self._show_gphotos_setup():
+                return
+        paths = list(self.gallery._items)
+        if not paths:
+            self.status.set_info("No files in the current folder")
+            return
+        if self._gp_dialog is None:
+            self._gp_dialog = GoogleSyncDialog(self.thumb_store, parent=self)
+            self._gp_dialog.setup_requested.connect(self._show_gphotos_setup)
+        self._gp_dialog.start(paths, self.gallery._meta)
+        self._gp_dialog.show()
+        self._gp_dialog.raise_()
+        self._gp_dialog.activateWindow()
 
     def _start_background_scan(self):
         # Show what's already indexed immediately (stale counts ok), then
@@ -174,15 +205,21 @@ class MainWindow(QMainWindow):
         self.status.show_thumb_progress(done, total)
 
     def _on_item_deleted(self, path):
+        self.fullview.mark_deleted(path)
         self.status.set_info(f"Moved to Trash: {os.path.basename(path)}")
 
     def _delete_from_detail(self, path, confirm):
-        if self.gallery.delete_path(path, confirm):
-            self.mode = MODE_THUMBNAIL
-            self.gallery.set_toolbar_visible(True)
-            self.fullview.close_view()
-            self.gallery.setFocus()
-            self.gallery.viewport().update()
+        target = self.gallery.delete_path(path, confirm)
+        if target is False:
+            return
+        if target:
+            self.fullview.show_path(target)
+            return
+        self.mode = MODE_THUMBNAIL
+        self.gallery.set_toolbar_visible(True)
+        self.fullview.close_view()
+        self.gallery.setFocus()
+        self.gallery.viewport().update()
 
     def _rotate_from_detail(self, path, clockwise):
         from rotate_media import rotate_media

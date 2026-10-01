@@ -16,6 +16,7 @@ from PySide6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, QRect, Qt, 
 from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPen, QPixmap, QPixmapCache
 from PySide6.QtWidgets import QAbstractScrollArea, QFrame, QHBoxLayout, QMessageBox, QPushButton, QStyle, QWidget
 
+from clipboard_util import image_for_clipboard
 from config import (
     GAP,
     MAX_ROW_HEIGHT,
@@ -103,6 +104,7 @@ class JustifiedGalleryView(QAbstractScrollArea):
     item_deleted = Signal(str)
     rotate_requested = Signal(str, bool)  # path, clockwise
     refresh_requested = Signal()
+    gphotos_requested = Signal()
 
     def __init__(self, thumb_manager, parent=None):
         super().__init__(parent)
@@ -163,6 +165,8 @@ class JustifiedGalleryView(QAbstractScrollArea):
         self.tb_open.setToolTip("Open containing folder")
         self.tb_copy = QPushButton("⧉")
         self.tb_copy.setToolTip("Copy image to clipboard")
+        self.tb_gphotos = QPushButton("☁")
+        self.tb_gphotos.setToolTip("Google Photos sync")
         self.tb_rotate_ccw = QPushButton("↺")
         self.tb_rotate_ccw.setToolTip("Rotate counter-clockwise 90°")
         self.tb_rotate_cw = QPushButton("↻")
@@ -174,7 +178,7 @@ class JustifiedGalleryView(QAbstractScrollArea):
             "QPushButton { color:#fff; background:transparent; border:none; font-size:20px; }"
             "QPushButton:hover { background:#333; border-radius:19px; }"
         )
-        for button in (self.tb_refresh, self.tb_open, self.tb_copy,
+        for button in (self.tb_refresh, self.tb_open, self.tb_copy, self.tb_gphotos,
                        self.tb_rotate_ccw, self.tb_rotate_cw, self.tb_exit):
             button.setFixedSize(38, 38)
             button.setCursor(Qt.PointingHandCursor)
@@ -184,6 +188,7 @@ class JustifiedGalleryView(QAbstractScrollArea):
         self.tb_refresh.clicked.connect(self.refresh_requested.emit)
         self.tb_open.clicked.connect(self._open_selected_folder)
         self.tb_copy.clicked.connect(self._copy_selected)
+        self.tb_gphotos.clicked.connect(self.gphotos_requested.emit)
         self.tb_rotate_ccw.clicked.connect(lambda: self._rotate_selected(False))
         self.tb_rotate_cw.clicked.connect(lambda: self._rotate_selected(True))
         self.tb_exit.clicked.connect(self._confirm_exit)
@@ -191,6 +196,7 @@ class JustifiedGalleryView(QAbstractScrollArea):
         lay.addWidget(self.tb_refresh)
         lay.addWidget(self.tb_open)
         lay.addWidget(self.tb_copy)
+        lay.addWidget(self.tb_gphotos)
         lay.addStretch(1)
         lay.addWidget(self.tb_rotate_ccw)
         lay.addWidget(self.tb_rotate_cw)
@@ -215,7 +221,7 @@ class JustifiedGalleryView(QAbstractScrollArea):
             return
         pm = QPixmapCache.find(path)
         if pm is not None and not pm.isNull():
-            QGuiApplication.clipboard().setPixmap(pm)
+            QGuiApplication.clipboard().setImage(image_for_clipboard(pm))
         else:
             from thumbgen import get_image_dimensions
             if path and os.path.exists(path):
@@ -624,7 +630,7 @@ class JustifiedGalleryView(QAbstractScrollArea):
             self._set_selected(target)
         self.viewport().update()
         self.item_deleted.emit(path)
-        return True
+        return target
 
     def _select_row(self, row_index, row_ys, current_center_x):
         if not 0 <= row_index < len(row_ys):

@@ -259,3 +259,42 @@ def test_fullview_video_mode(qapp, manager, media_tree):
     fv.close_view()
     assert not fv.isVisible()
     win.close()
+
+
+def test_clipboard_image_bakes_to_srgb(qapp):
+    from PySide6.QtGui import QColor, QColorSpace, QImage, QPixmap
+    from clipboard_util import image_for_clipboard
+    src = QImage(1, 1, QImage.Format.Format_RGB32)
+    src.fill(QColor(200, 60, 30))
+    img = image_for_clipboard(QPixmap.fromImage(src))
+    assert img.colorSpace().isValid()
+    assert img.colorSpace().primaries() == QColorSpace.Primaries.SRgb
+    out = img.pixelColor(0, 0)
+    # converting P3 -> sRGB widens the gamut of a saturated colour
+    assert out.red() >= 200 and out.blue() <= 30
+
+
+def test_copy_image_sets_clipboard(qapp, manager, media_tree):
+    from PySide6.QtGui import QGuiApplication
+    from PySide6.QtWidgets import QMainWindow
+    from fullview import FullView
+    mgr, store = manager
+    win = QMainWindow()
+    win.resize(800, 600)
+    gallery = JustifiedGalleryView(mgr)
+    win.setCentralWidget(gallery)
+    win.show()
+    files = walk_media_files(media_tree)
+    paths = [f[0] for f in files if f[0].lower().endswith(".jpg")]
+    gallery.set_items_with_meta(paths, {p: (0, 0) for p in paths})
+    fv = FullView(gallery.viewport())
+    fv.parent_store = store
+    fv.set_items(paths)
+    fv.resize(800, 600)
+    fv.show_photo(paths[0])
+    qapp.processEvents()
+    fv._copy_image()
+    img = QGuiApplication.clipboard().image()
+    assert img is not None and not img.isNull()
+    fv.close_view()
+    win.close()

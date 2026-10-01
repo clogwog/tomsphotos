@@ -30,6 +30,15 @@ def _load_settings():
 
 SETTINGS = _load_settings()
 
+
+def _write_settings():
+    try:
+        with open(SETTINGS_PATH, "w") as f:
+            json.dump(SETTINGS, f, indent=2)
+    except OSError:
+        pass
+
+
 SOURCE_ROOT = os.path.expanduser(SETTINGS.get("source_root", DEFAULT_SOURCE_ROOT))
 
 
@@ -38,11 +47,25 @@ def set_source_root(path):
     global SOURCE_ROOT
     SOURCE_ROOT = os.path.expanduser(path)
     SETTINGS["source_root"] = SOURCE_ROOT
-    try:
-        with open(SETTINGS_PATH, "w") as f:
-            json.dump(SETTINGS, f, indent=2)
-    except OSError:
-        pass
+    _write_settings()
+
+
+# Google Photos sync (Library API, app-created content only)
+GP_ALBUM_TITLE = SETTINGS.get("gp_album_title", "tomsphotos")
+GP_CLIENT_ID = SETTINGS.get("google_client_id", "")
+GP_CLIENT_SECRET = SETTINGS.get("google_client_secret", "")
+GP_TOKEN_PATH = os.path.join(DATA_DIR, "gphotos_token.json")
+UPLOAD_DB_PATH = os.path.join(DATA_DIR, "uploads.db")
+
+
+def set_google_credentials(client_id, client_secret):
+    """Persist the user's OAuth Desktop client credentials."""
+    global GP_CLIENT_ID, GP_CLIENT_SECRET
+    GP_CLIENT_ID = client_id.strip()
+    GP_CLIENT_SECRET = client_secret.strip()
+    SETTINGS["google_client_id"] = GP_CLIENT_ID
+    SETTINGS["google_client_secret"] = GP_CLIENT_SECRET
+    _write_settings()
 
 INDEX_DB_PATH = os.path.join(DATA_DIR, "index.db")
 THUMB_DB_PATH = os.path.join(DATA_DIR, "thumbnails.db")

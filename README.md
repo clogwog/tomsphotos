@@ -8,6 +8,23 @@ views. Built to handle large libraries (tens of thousands of files) without
 lag: thumbnails are generated in a background worker pool, cached in SQLite,
 and the grid only renders what's on screen.
 
+## Screenshots
+
+Justified gallery with the directory tree on the left:
+
+![Justified gallery](docs/screenshots/gallery.png)
+
+Full-size detail view (path, date, resolution and size in the toolbar):
+
+![Detail view](docs/screenshots/detail.png)
+
+Google Photos sync dialog:
+
+![Google Photos sync](docs/screenshots/google-photos.png)
+
+_Screenshots use a generated sample library; regenerate with
+`python scripts/make_screenshots.py` (headless)._
+
 ## Features
 
 - **Directory tree** — left panel shows your photo library's folder structure
@@ -21,6 +38,16 @@ and the grid only renders what's on screen.
   Rotation matrix (MOV/MP4) via `exiftool`. Works in both the detail view and
   the thumbnail grid.
 - **Copy to clipboard** — copy the current image to the clipboard.
+- **Google Photos sync** — ☁ button in the thumbnail toolbar runs a one-way
+  sync of the current folder. Since Google's April 2025 API changes no
+  third-party app can list your library, so the app skips files it already
+  synced (app-owned `tomsphotos` album by filename + a local upload log
+  keyed by path/mtime/size), uploads the rest at full resolution, and lets
+  Google's content deduplication absorb photos already in the account.
+  The dialog shows the file currently uploading as a live thumbnail.
+  Re-encoded or edited copies may still be duplicated. One-time OAuth setup
+  via `File → Google Photos Setup…` (your own Google Cloud Desktop OAuth
+  client).
 - **Move to Trash** — delete files safely via the macOS Trash.
 - **Configurable photo directory** — `File → Set Photo Directory…` (`⌘O`) to
   point the app at any folder; persisted in `settings.json`.
@@ -100,6 +127,10 @@ gallerypanel.py  Virtualized justified gallery grid
 fullview.py      Full-size photo/video overlay with toolbar
 treepanel.py     Filesystem-backed directory tree
 rotate_media.py  Metadata-only rotation via exiftool
+gphotos.py       Google Photos OAuth + Library API client (stdlib only)
+gpdialog.py      Google Photos sync dialog (live upload progress + thumbnail)
+synclog.py       Upload log (SQLite) — source of truth for "already synced"
 statusbar.py     Progress / status widgets
 main.py          App entry point, window, menus
+scripts/         Developer tooling (screenshot generation)
 ```
